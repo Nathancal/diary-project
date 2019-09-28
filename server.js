@@ -10,6 +10,9 @@ app.use(bodyParser.urlencoded({extended: false}));
 //Importing the models
 var Submission = require('./models/submission');
 var Diary = require('./models/diary');
+var User = require('./models/user');
+
+
 
 //express function get retrieves data from the DB
 app.get('/submission', function(req, res){
@@ -29,14 +32,35 @@ app.get('/submission', function(req, res){
 
 
 app.post('/submission', function(req, res){
+
+    //Creates a variable that displays the date day/month/year.
+    //Data derived from the date() function
+    var date = new Date();
+    var month = date.getMonth() + 1; //months from 1-12
+    var day = date.getDate();
+    var year = date.getFullYear();
+    var dateComplete = day + "/" + month + "/" + year;
+
+    //Creates a variable that displays the timestamp of each submission
+    //Data also derived form the date() function
+    var time = new Date();
+    var hour = date.getHours();
+    var minute = date.getMinutes();
+    var seconds = date.getSeconds();
+    var timeComplete = hour + ":" + minute + ":" + seconds;
+
+    //Collects the Data from the User for all except the
+    //date and time which is generated automatically
     var submission = new Submission();
 
     submission.title = req.body.title;
     submission.content = req.body.content;
-    submission.date = req.body.date;
-    submission.time = req.body.time;
+    submission.date = dateComplete;
+    submission.time = timeComplete;
     submission.sms = req.body.sms;
 
+    //Uses a callback function to throw any errors and
+    //save the new object
     submission.save(function(err, savedSubmission){
         if(err){
             res.status(500).send({error: "Could not add submission"});
@@ -106,11 +130,14 @@ app.put('/diary/submission/add', function(req, res){
 });
 
 app.put('/diary/submission/remove', function(req, res){
-
+    //Uses the findOne function to find the submission objectId connected
+    //with the submissionId
     Submission.findOne({_id: req.body.submissionId}, function(err, submission){
         if(err){
             res.status(200).send({error:"Could not find submission"});
         } else {
+            //Once a submission is found the diary its to be pulled from is then found
+            //the submission is then pulled from the diary
             Diary.update({_id: req.body.diaryId}, {$pull: {submissions: submission._id}}, function(err, diary){
                 if(err){
                     res.status(200).send({error: "could not remove submission"});
@@ -128,10 +155,12 @@ app.put('/diary/submission/remove', function(req, res){
 
 });
 
+
+
+//The following are two functions that allow the user to search for
+//submissions both by title and by date.
 app.get('/submission/search/:title', function(req, res){
     var title = req.params.title;
-
-
 
     Submission.find({title: req.params.title}, function(err, submission){
         if(err){
@@ -143,6 +172,21 @@ app.get('/submission/search/:title', function(req, res){
     })
 
 });
+app.get('/submission/search/:date', function(req, res){
+    var date = req.params.date;
+
+    Submission.find({date: req.params.date}, function(err, submission){
+        if(err){
+            res.status(200).send({error: "Could not find submission"});
+        } else {
+            res.send(submission);
+        }
+
+    })
+
+});
+
+
 
 
 app.get('/diary', function(req, res){
@@ -156,6 +200,30 @@ app.get('/diary', function(req, res){
     })
 
 });
+
+// app.post('/user', function(req, res){
+//     var user = new User;
+//
+//     user.title = req.body.title;
+//     user.userName = req.body.userName;
+//     user.passWord = req.body.passWord;
+//     user.forename = req.body.forename;
+//     user.surname = req.body.surname;
+//     user.loggedIn = false;
+//
+//     user.save(function(err, savedUser){
+//         if(err){
+//             res.status(200).send({error: "Could not add user"});
+//         } else {
+//             res.send(savedUser);
+//
+//         }
+//
+//     })
+//
+//
+// });
+
 
 app.listen(3000, function(){
     console.log("Diary Application running on port: 3000");
